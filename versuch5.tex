@@ -15,11 +15,6 @@
 
 \chapter{Intro}
 
-\section{Versuchsbeschreibung}
-\subsection{1. Teil: Live-Hacking}
-Der Betreuer wird einen Angriff vorführen. Um welche Angriffe es sich handelt, wird erst
-am Übungstag entschieden.
-
 \section{Begriffserklärung -  Intrusion Detection System (IDS)}
 Als Intrusion-Detection wird die aktive Überwachung von Computersystemen und/oder
 -netzen mit dem Ziel der Erkennung von Angriffen und Missbrauch bezeichnet. Das Ziel
@@ -33,6 +28,16 @@ ganzen Teilnetzes auf verdächtige Ereignisse. Zum Betrieb jedes Netzsensors wir
 typischerweise ein separater Rechner eingesetzt, so dass andere Applikationen nicht
 gestört werden können. Teilweise liefern Hersteller Netzsensoren nur noch in Kombination
 mit der zugehörigen Hardware/Software-Plattform, als so genanntes Appliance.
+
+\iffalse
+TODO:
+Arten von Instrustion Detection Systemen niederschreiben..
+\fi
+
+\section{Aufgabenablauf}
+\subsection{1. Teil: Live-Hacking}
+Der Betreuer wird einen Angriff vorführen. Um welche Angriffe es sich handelt, wird erst
+am Übungstag entschieden.
 
 \subsection{2. Teil: Konfiguration des IDS}
 
@@ -54,19 +59,13 @@ unternommen werden soll.
 
 \chapter{Selbstversuch}
 
-\section{Nachschlagen einer Regel aus web-iis.rules}
-Betrachten sie eine beliebige Regel aus der Datei web-iis.rules und schlagen Sie die
-verwendeten Optionen im Handbuch nach. Machen Sie sich klar, wann diese
-Angriffssignaturspezifikation erfüllt ist.
-
-
 \section{Snort}
 \subsection{Installation}
 Die Installation von Snort über die Kommandozeile:
 \begin{lstlisting}
-apt install snort (HOME_NET=141.62.66.0/24)
+apt install snort
 \end{lstlisting}
-Das Interface muss vorher mit ifconfig abgefragt werden.
+Das Interface und die IP Range muss vorher mit ifconfig abgefragt werden:
 \begin{lstlisting}
 ifconfig
 enp0s3: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
@@ -87,7 +86,7 @@ RX errors 0  dropped 0  overruns 0  frame 0
 TX packets 2279  bytes 139877 (139.8 KB)
 TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
 \end{lstlisting}\newpage
-Während der Installation von snort, findet eine Abfrage statt, welches Netzwerk Interface verwendet werden soll.
+Während der Installation von snort, finden bezüglich dem Interface und der IP Range 2 Abfragen statt:
 \begin{lstlisting}
 sudo apt install snort
 Reading package lists... Done
@@ -100,16 +99,19 @@ After this operation, 0 B of additional disk space will be used.
 Do you want to continue? [Y/n] Y
 Setting up snort (2.9.7.0-5) ...
 \end{lstlisting}
-In unserem Beispiel haben wir das Netzwerk Interface enp0s3 eingetragen.
-
+In unserem Beispiel haben wir das Netzwerk Interface enp0s3 eingetragen und das IP Subnetz (141.62.66.0/24) des Labors angegeben.
 
 \subsection{Konfiguration}
 
+Im Konfigurationsfile von Snort (das unter /etc/snort/snort.conf zu finden ist), haben wir lediglich eine zusätzliche Zeile eingetragen:
+\begin{lstlisting}
+output alert_fast: alert.log
+\end{lstlisting}
 \section{Teil 1 - Hacking}
 In unserem Versuch wurden automatisierte Pentests seitens des Dozenten durchgeführt, die um die 40000 Angriffe umfassten. Einen einzelnen Angrif heraus zu filtern, ist dadurch schwierig. Wir versuchen, einen konkreten Angriff genauer zu beleuchten.
 
 \iffalse
-Todo:
+TODO:
 einzelnen Angriff aus dem Wireshark Protokoll herausziehen, diesen genauer beschreiben.
 Den selben Angriff aus einer der Alertdateien rausfishen.
 Vielleicht ein gutes Beispiel - muss genauer evaluiert werden:
@@ -122,8 +124,8 @@ Beim TCP-SYN-Scan wird ein TCP-Paket mit SYN-Flag an den Ziel-Host gesendet, um 
 \begin{figure}[htb]
 	\centering
 	\includegraphics[width=1.0\textwidth]{pics/latex/tcpsynscan.png}
-	\caption{Wireshark Logo}
-	\label{fig:wiresharklogo}
+	\caption{TCP Syn Scan}
+	\label{fig:tcpsynscan}
 \end{figure}
 
 Das passiert im alert.log, wenn man Port 0 scannt (sehr typisch bei einem NMAP Port Scan Port 0 mit anzugeben):
@@ -139,44 +141,39 @@ Das passiert im alert.log, wenn man Port 0 scannt (sehr typisch bei einem NMAP P
 \newpage
 \section{Teil 2 - IDS}
 	
-	
 \subsection{Snort Regeln}
-
+\subsubsection{Aufgabe}
+\begin{itemize}
+\item Schreiben Sie eine Regel, die auf TCP SYN Pakete auf Port 111 anspricht!
+\item Versuchen Sie eine Regel zu schreiben, die anspricht, wenn ein Paket die
+Bytesequenz istestlabor enthält! (Zum testen können Sie ja eine entsprechende
+index.html Datei für den Webserver erstellen oder diese Sequenz als ftp login
+probieren.)
+\end{itemize}
+\subsubsection{Vorgehen}
 Öffnen der rules-Datei:
 \begin{lstlisting}
 sudo gedit /etc/snort/rules
 \end{lstlisting}
-
 Eintragen der neuen Regeln:
-
-\iffalse
-erste rule funktioniert nicht?! Nur abgeschrieben aus unserer Rules Datei. Keine Message aus alert.log gefunden.
-\fi
-
 \begin{lstlisting}
 alert tcp any any -> any 111 
 (flags: S; msg: "Possible SYN FIN scan"; sid:10000001;)
-alert tcp any any -> any 111
+alert tcp any any -> any any
 (msg: "String istestlabor detected"; content:"istestlabor" sid:10000002;)
 \end{lstlisting}
 
 \begin{itemize}
 \item tcp/udp: Gibt an, welcher Pakettyp verwendet wird.
-
-\iffalse
-Hier fehlt noch die genauere Beschreibung der einzelnen Attribute der Rule.
-\fi
-
+\item Externe IP \& Externer Port -$>$ Interne IP Interner Port
 \item flags: S steht für SYN Pakete. (Siehe Three-Way-Handshake).\\
 Es können auch andere Pakete selektiert werden, auf die reagiert werden soll.
 \item msg: Gibt an, welche Nachricht im alert.log erscheinen soll, falls ein Muster detektiert wird.
 \item content: Gibt an, auf welchen String reagiert werden soll.
 \item sid: ist ein Akronym für Snort ID.  Jeder Snort Regelsatz hat eine einzigartige ID die es Output Modulen oder Log Scannern ermöglicht, die Regel die den Alarm ausgelöst hat zu identifizieren. 
 \end{itemize}
-
-Getestet wurde das ganze in dem wir eine FTP Verbindung zu einem anderen Client aufgenommen haben und als User und Passwort istestlabor eingetragen haben.
-Die andere Rule wurde durch den Port Scan des Dozenten ausgelöst.
-
+Getestet wurde, in dem wir eine FTP Verbindung zu einem anderen Client aufgenommen haben und als User und Passwort istestlabor eingetragen haben. Die andere Rule wurde durch den Port Scan des Dozenten ausgelöst.
+\\
 Dannach haben wir kontrolliert, ob die Regel auch tatsächlich funktioniert:
 
 \begin{lstlisting}
